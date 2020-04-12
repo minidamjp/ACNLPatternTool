@@ -6,7 +6,7 @@ Vue.use(VueRouter);
 const mode = "history";
 
 const routes = [
-  { path: `/`, component: Editor },
+  { path: `*`, component: Editor },
 ];
 
 const router = new VueRouter({

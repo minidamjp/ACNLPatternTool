@@ -30,7 +30,7 @@ const entry = [pathToClientSrcIndex];
 
 const output = {
   filename: "scripts/bundle.js",
-  publicPath: "/",
+  publicPath: "./",
   path: pathToBuild,
 };
 
@@ -142,7 +142,7 @@ const fonts = [
 
 const htmlWebpackOptions = {
   inject: true,
-  hash: true,
+  hash: false,
   template: pathToPublicIndex,
   title: 'Animal Crossing Pattern Tool',
 };
