@@ -1,0 +1,39 @@
+version: '2'
+services:
+  zxing-js-library:
+    image: node:12-alpine
+    volumes:
+      - ./zxing-js-library:/app
+    working_dir: /app
+    command:
+      - /bin/sh
+      - -x
+      - -c
+      - |
+        if [ ! -d node_modules ]; then
+          npm install
+        fi
+        if [ ! -d esm5 ]; then
+          npm run build:es5
+        fi
+  app:
+    image: node:12-alpine
+    ports:
+      - 8080:8080
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - DEV_HOST=0.0.0.0
+      - DEV_PORT=8080
+      - API_URL=http://localhost/
+      - IS_OFFLINE=true
+    command:
+      - /bin/sh
+      - -x
+      - -c
+      - |
+        if [ ! -d node_modules ]; then
+          npm install
+        fi
+        npm run dev
