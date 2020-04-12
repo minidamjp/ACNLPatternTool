@@ -470,6 +470,10 @@ class DrawingTool{
     color = this.setPixel(x, y, color);
     if (color === false){return;}
     let htmlColor = ACNLFormat.paletteColors[this.pattern.getPalette(color)];
+    if (color === 15) {
+      // transparent
+      htmlColor = "";
+    }
     for (let i in this.renderTargets){
       this.renderTargets[i].drawPixel(x, y, htmlColor);
     }
