@@ -44,7 +44,7 @@
           </button>
         </div>
         <div class="tools-and-colors">
-          <ToolSelector @newtool="toolChange" @newtoolalt="toolChangeAlt" />
+          <ToolSelector @newtool="toolChange" @newtoolalt="toolChangeAlt" @undoredo="undoredo" />
           <div class="tool-buttons">
             <button @click="openColorPicker">
               <object class="svg nav brown-circle" :data="paletteSvg"></object>
@@ -508,6 +508,13 @@ export default {
     },
     toolChangeAlt(newTool){
       this.drawingTool.drawHandlerAlt = newTool;
+    },
+    undoredo(isRedo) {
+      if (isRedo) {
+        this.drawingTool.redo();
+      } else {
+        this.drawingTool.undo();
+      }
     },
     downACNL(){
       const blob = new Blob([this.drawingTool.toBytes()], {"type": "application/octet-stream"});

@@ -9,6 +9,12 @@
     <button class="tool" :class="{picked: pickedColorPicker}" @click.prevent="pickToolColorPicker" @contextmenu.prevent="pickToolColorPicker">
       <img class="svg nav brown-circle" :src=dropperSvg />
     </button>
+    <button class="tool" @click.prevent="doUndo" @contextmenu.prevent="doUndo">
+      Undo
+    </button>
+    <button class="tool" @click.prevent="doRedo" @contextmenu.prevent="doRedo">
+      Redo
+    </button>
   </div>
 </template>
 
@@ -71,6 +77,12 @@ export default {
         }
       });
     },
+    doUndo(e) {
+      this.$emit("undoredo", false);
+    },
+    doRedo(e) {
+      this.$emit("undoredo", true);
+    },
     setToolClass(tool) {
       this.pickedPencil = false;
       this.pickedFloodFill = false;
@@ -88,7 +100,7 @@ export default {
     justify-content: space-evenly;
     align-items: center;
     border-radius: 0 35px 35px 0;
-    height: 200px;
+    height: 300px;
     width: 75px;
     background-color: #fae4dc;
     box-shadow: rgba(0,0,0,0.2) 0 0 8px;
