@@ -5,7 +5,6 @@
       type="file"
       name="files"
       ref="files"
-      accept="image/*,.acnl,.dat,.zip"
       multiple
       @change="onFile" />
   </div>
