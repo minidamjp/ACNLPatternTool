@@ -44,7 +44,7 @@
           </button>
         </div>
         <div class="tools-and-colors">
-          <ToolSelector @newtool="toolChange" @newtoolalt="toolChangeAlt" @undoredo="undoredo" />
+          <ToolSelector @newtool="toolChange" @newtoolalt="toolChangeAlt" @undoredo="undoredo" @clear="clear" />
           <div class="tool-buttons">
             <button @click="openColorPicker">
               <object class="svg nav brown-circle" :data="paletteSvg"></object>
@@ -516,6 +516,10 @@ export default {
         this.drawingTool.undo();
       }
     },
+    clear() {
+      this.drawingTool.pushUndo();
+      this.drawingTool.load(null);
+    },
     downACNL(){
       const blob = new Blob([this.drawingTool.toBytes()], {"type": "application/octet-stream"});
       saveAs(blob, this.drawingTool.title+".acnl");
@@ -555,6 +559,9 @@ export default {
       }
       */
       return;
+    },
+    onUpdate: function() {
+      localStorage.setItem("snapshot", lzString.compressToUTF16(this.drawingTool.toString()));
     },
     extLoad: function(data) {
       this.drawingTool.load(data);
@@ -615,6 +622,9 @@ export default {
       this.drawingTool.authorStrict = localStorage.getItem("author_acnl");
       this.storedAuthorHuman = this.drawingTool.creator[0]+" / "+this.drawingTool.town[0];
     }
+    if (localStorage.getItem("snapshot")){
+      this.drawingTool.load(lzString.decompressFromUTF16(localStorage.getItem("snapshot")));
+    }
     this.drawingTool.addCanvas(this.$refs.canvas1, {grid:true});
     this.drawingTool.addCanvas(this.$refs.canvas2);
     this.drawingTool.addCanvas(this.$refs.canvas3);
@@ -634,6 +644,7 @@ export default {
       this.onLoad();
       this.drawingTool.render();
     }
+    this.drawingTool.onUpdate(this.onUpdate);
 
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'Z'){

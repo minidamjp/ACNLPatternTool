@@ -15,6 +15,9 @@
     <button class="tool" @click.prevent="doRedo" @contextmenu.prevent="doRedo">
       Redo
     </button>
+    <button class="tool" @click.prevent="doClear" @contextmenu.prevent="doClear">
+      Clear
+    </button>
   </div>
 </template>
 
@@ -83,6 +86,9 @@ export default {
     doRedo(e) {
       this.$emit("undoredo", true);
     },
+    doClear(e) {
+      this.$emit("clear");
+    },
     setToolClass(tool) {
       this.pickedPencil = false;
       this.pickedFloodFill = false;
@@ -100,7 +106,7 @@ export default {
     justify-content: space-evenly;
     align-items: center;
     border-radius: 0 35px 35px 0;
-    height: 300px;
+    height: 350px;
     width: 75px;
     background-color: #fae4dc;
     box-shadow: rgba(0,0,0,0.2) 0 0 8px;

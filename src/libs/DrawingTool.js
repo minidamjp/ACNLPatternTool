@@ -99,6 +99,7 @@ class DrawingTool{
     this.drawing = false;
     this.handleOnLoad = [() => {this.render(); this.pushUndo();}];//setup default onLoad handler
     this.handleColorChange = [];
+    this.handleOnUpdate = [];
     this.reset();
     this.undoHistory = [];
     this.redoHistory = [];
@@ -132,8 +133,14 @@ class DrawingTool{
     this.pixels = new Uint8Array(this.pixels_buffer);
     this.pattern.toPixels(this.pixels);
     this.currentColor = 0;
-    this.onLoad();
-    this.onColorChange();
+    let escapedPushUndo = this.pushUndo;
+    this.pushUndo = function(){};
+    try {
+      this.onLoad();
+      this.onColorChange();
+    } finally {
+      this.pushUndo = escapedPushUndo;
+    }
   }
 
   pushUndo(){
@@ -434,6 +441,8 @@ class DrawingTool{
       this.renderTargets[i].calcZoom(this.pattern.width);
       this.renderTargets[i].blitFrom(this.renderTargets[0]);
     }
+
+    this.onUpdate();
   }
 
   /// Returns the color (palette index) of the given pixel
@@ -477,6 +486,8 @@ class DrawingTool{
     for (let i in this.renderTargets){
       this.renderTargets[i].drawPixel(x, y, htmlColor);
     }
+
+    this.onUpdate();
   }
 
   /// When called with a function as parameter, adds an event handler for pattern loads.
@@ -502,6 +513,19 @@ class DrawingTool{
       }
     }else if ((typeof f) == "function"){
       this.handleColorChange.push(f);
+    }
+  }
+
+  /// When called with a function as parameter, adds an event handler for canvas updates.
+  /// When called without parameter (or with null), calls all onLoad event handlers in sequence.
+  /// Called automatically whenever canvas is updated.
+  onUpdate(f = null){
+    if (f === null){
+      for (let i in this.handleOnUpdate){
+        this.handleOnUpdate[i](this);
+      }
+    }else if ((typeof f) == "function"){
+      this.handleOnUpdate.push(f);
     }
   }
 
