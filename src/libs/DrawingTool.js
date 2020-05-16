@@ -449,7 +449,13 @@ class DrawingTool{
     }
     const prevDef = function(e){e.preventDefault();}
     const touchToMouse = function(e){
-      const t = e.touches[0];
+      let t;
+      if (e.touches.length > 0) {
+        t = e.touches[0];
+      } else {
+        // touchend
+        t = e.changedTouches[0];
+      }
       const rect = t.target.getBoundingClientRect();
       return {
         offsetX: t.clientX - rect.left,
@@ -461,25 +467,36 @@ class DrawingTool{
     //In case there's no touch support, ignore
     try{
       c.addEventListener("touchstart", (e) => {
+        if (this.drawing) {return;}
         document.body.addEventListener('touchmove', prevDef, {passive:false});
         this.drawing = true;
         this.pushUndo();
         this.handleCanvasClick(touchToMouse(e));
+        e.preventDefault();
       });
       c.addEventListener("touchend", (e) => {
+        if (!this.drawing) {return;}
         this.drawing = false;
         document.body.removeEventListener('touchmove', prevDef);
         this.handleCanvasClickEnd(touchToMouse(e));
+        e.preventDefault();
       });
       c.addEventListener("touchmove", (e) => {
-        if (this.drawing){this.handleCanvasClick(touchToMouse(e));}
+        if (this.drawing){
+          this.handleCanvasClick(touchToMouse(e));
+          e.preventDefault();
+        }
       });
     }catch(e){}
     c.addEventListener("mousedown", () => {
       this.drawing = true;
       this.pushUndo();
     });
-    c.addEventListener("mouseup", (e) => {this.drawing = false; this.handleCanvasClickEnd(e);});
+    c.addEventListener("mouseup", (e) => {
+      if (!this.drawing) {return;}
+      this.drawing = false;
+      this.handleCanvasClickEnd(e);
+    });
     c.addEventListener("mousemove", (e) => {
       if (this.drawing && (e.which == 1 || e.which == 3)){this.handleCanvasClick(e);}}
     );
