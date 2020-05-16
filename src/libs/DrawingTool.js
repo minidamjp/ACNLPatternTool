@@ -28,7 +28,7 @@ class RenderTarget{
   }
 
   /// Draws the given pixel with the given HTML color
-  drawPixel(x, y, color){
+  drawPixel(x, y, color, ranged=false){
     //If we've gone under 64 pixels, assume we meant the right side instead.
     if (y > 63 && !this.opt.tall){
       y -= 64; x += 32;
@@ -54,6 +54,10 @@ class RenderTarget{
         this.context.fillStyle = "#AAAAAA";
       }
       this.context.fillRect(x*this.zoom,y*this.zoom+this.zoom-((y%8==7)?2:1),this.zoom,(y%8==7)?2:1);
+    }
+    if(ranged) {
+      this.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
+      this.context.fillRect(x*this.zoom,y*this.zoom,this.zoom,this.zoom);
     }
     if (typeof this.opt.drawCallback == "function"){this.opt.drawCallback();}
   }
@@ -101,6 +105,7 @@ class DrawingTool{
     this.handleColorChange = [];
     this.handleOnUpdate = [];
     this.reset();
+    this.resetRange();
     this.undoHistory = [];
     this.redoHistory = [];
     if (data != null){this.load(data);}
@@ -113,10 +118,62 @@ class DrawingTool{
     this.pixels = new Uint8Array(this.pixels_buffer);
     this.drawHandler = basicDrawing;
     this.drawHandlerAlt = basicDrawing;
+    this.drawEndHandler = null;
+    this.drawEndHandlerAlt = null;
     this.currentColor = 0;
     this.undoHistory = [];
     this.redoHistory = [];
     this.onLoad();
+  }
+
+  resetRange() {
+    let lastState = this.range ? this.range.state : 0;
+    this.range = {
+      state: 0, // 0 ... nothing, 1 ... now ranging, 2 ... ranged
+      startPos: null,
+      endPos: null,
+      getRect: function() {
+        if (this.state == 0) {
+          return null;
+        }
+        return {
+          x1: ((this.startPos.x < this.endPos.x) ? this.startPos.x : this.endPos.x),
+          x2: ((this.startPos.x < this.endPos.x) ? this.endPos.x : this.startPos.x),
+          y1: ((this.startPos.y < this.endPos.y) ? this.startPos.y : this.endPos.y),
+          y2: ((this.startPos.y < this.endPos.y) ? this.endPos.y : this.startPos.y),
+        };
+      },
+      isContained: function(x, y) {
+        if (this.state == 0) {
+          return false;
+        }
+        let rect = this.getRect();
+        return rect.x1 <= x && x <= rect.x2 && rect.y1 <= y && y <= rect.y2;
+      },
+      getDirection: function(x, y) {
+        if (this.state == 0) {
+          return false;
+        }
+        let rect = this.getRect();
+        let rx = 0;
+        if (x < rect.x1) {
+          rx = -1;
+        } else if (rect.x2 < x) {
+          rx = +1;
+        }
+        let ry = 0;
+        if (y < rect.y1) {
+          ry = -1;
+        } else if (rect.y2 < y) {
+          ry = +1;
+        }
+        return {
+          x: rx,
+          y: ry,
+        };
+      },
+    };
+    return lastState != 0;
   }
 
   load(data){
@@ -159,6 +216,7 @@ class DrawingTool{
 
   undo(){
     if (!this.undoHistory.length){return false};
+    this.resetRange();
     this.pushRedo();
     let pState = this.undoHistory.pop();
     for (let i = 0; i < 4096; ++i){this.pixels[i] = pState.pixels[i];}
@@ -170,6 +228,7 @@ class DrawingTool{
   
   redo(){
     if (!this.redoHistory.length){return false};
+    this.resetRange();
     this.pushUndo();
     let pState = this.redoHistory.pop();
     for (let i = 0; i < 4096; ++i){this.pixels[i] = pState.pixels[i];}
@@ -349,8 +408,7 @@ class DrawingTool{
     return ACNLFormat.paletteColors[this.pattern.getPalette(idx)];
   }
 
-  ///Handles a canvas click or mouse move operation
-  handleCanvasClick(e){
+  calculatePosition(e) {
     let xpos = 0, ypos = 0;
     if (e.offsetX == undefined){
       xpos = e.pageX-e.target.offsetLeft;
@@ -361,8 +419,23 @@ class DrawingTool{
     }
     let x = Math.floor(xpos / (e.target.width / this.pattern.width));
     let y = Math.floor(ypos / (e.target.height / this.pattern.width));
-    if (e.which == 1){this.drawHandler(x, y, this);}
-    if (e.which == 3){this.drawHandlerAlt(x, y, this);}
+    return {
+      x,
+      y,
+    };
+  }
+
+  ///Handles a canvas click or mouse move operation
+  handleCanvasClick(e){
+    let pos = this.calculatePosition(e);
+    if (e.which == 1){this.drawHandler(pos.x, pos.y, this);}
+    if (e.which == 3){this.drawHandlerAlt(pos.x, pos.y, this);}
+  }
+
+  handleCanvasClickEnd(e){
+    let pos = this.calculatePosition(e);
+    if (e.which == 1){if (this.drawEndHandler) {this.drawEndHandler(pos.x, pos.y, this);}}
+    if (e.which == 3){if (this.drawEndHandlerAlt) {this.drawEndHandlerAlt(pos.x, pos.y, this);}}
   }
 
   /// Adds a canvas to the internal list of render targets.
@@ -393,9 +466,10 @@ class DrawingTool{
         this.pushUndo();
         this.handleCanvasClick(touchToMouse(e));
       });
-      c.addEventListener("touchend", () => {
+      c.addEventListener("touchend", (e) => {
         this.drawing = false;
         document.body.removeEventListener('touchmove', prevDef);
+        this.handleCanvasClickEnd(touchToMouse(e));
       });
       c.addEventListener("touchmove", (e) => {
         if (this.drawing){this.handleCanvasClick(touchToMouse(e));}
@@ -405,7 +479,7 @@ class DrawingTool{
       this.drawing = true;
       this.pushUndo();
     });
-    c.addEventListener("mouseup", () => {this.drawing = false;});
+    c.addEventListener("mouseup", (e) => {this.drawing = false; this.handleCanvasClickEnd(e);});
     c.addEventListener("mousemove", (e) => {
       if (this.drawing && (e.which == 1 || e.which == 3)){this.handleCanvasClick(e);}}
     );
@@ -429,10 +503,11 @@ class DrawingTool{
     for (let i = 0; i < pixCount; i++){
       let x = (i % 32);
       let y = Math.floor(i / 32);
+      let ranged = this.range && this.range.isContained(x, y);
       if (this.pixels[i] == 0xFC || this.pixels[i] == 15){
-        this.renderTargets[0].drawPixel(x, y, "");
+        this.renderTargets[0].drawPixel(x, y, "", ranged);
       }else{
-        this.renderTargets[0].drawPixel(x, y, palette[this.pixels[i]]);
+        this.renderTargets[0].drawPixel(x, y, palette[this.pixels[i]], ranged);
       }
     }
     

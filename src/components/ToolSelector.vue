@@ -9,6 +9,9 @@
     <button class="tool" :class="{picked: pickedColorPicker}" @click.prevent="pickToolColorPicker" @contextmenu.prevent="pickToolColorPicker">
       <img class="svg nav brown-circle" :src=dropperSvg />
     </button>
+    <button class="tool" :class="{picked: pickedRange}" @click.prevent="pickRange" @contextmenu.prevent="pickRange">
+      Range
+    </button>
     <button class="tool" @click.prevent="doUndo" @contextmenu.prevent="doUndo">
       Undo
     </button>
@@ -33,6 +36,7 @@ export default {
       pickedPencil: true,
       pickedFloodFill: false,
       pickedColorPicker: false,
+      pickedRange: false,
       pencilSvg,
       fillSvg,
       dropperSvg,
@@ -80,6 +84,73 @@ export default {
         }
       });
     },
+    pickRange(e) {
+      this.setToolClass('pickedRange');
+      this.$emit(
+        "newtool"+(e.which == 1?"":"alt"),
+        function(x, y, tool){
+          // Ignore click fired after mouseup
+          if (!tool.drawing) {return;}
+          if (tool.range.state == 0) {
+            // not ranged
+            tool.range.startPos = tool.range.endPos = {
+              x,
+              y,
+            };
+            tool.range.state = 1;
+            tool.render();
+          } else if (tool.range.state == 1) {
+            // now ranging
+            tool.range.endPos = {
+              x,
+              y,
+            };
+            tool.render();
+          } else {
+            // already ranged
+            // noop
+          }
+        },
+        function(x, y, tool){
+          if (tool.range.state == 0) {
+            // not ranged
+          } else if (tool.range.state == 1) {
+            // now ranging
+            tool.range.state = 2;
+          } else {
+            // already ranged
+            if (tool.range.isContained(x, y)) {
+              tool.resetRange();
+              tool.render();
+              return;
+            }
+            let rect = tool.range.getRect();
+            let dir = tool.range.getDirection(x, y);
+
+            let pixels = {};
+            for (let dx = 0; dx <= rect.x2 - rect.x1; ++dx) {
+              for (let dy = 0; dy <= rect.y2 - rect.y1; ++dy) {
+                pixels[`${dx},${dy}`] = tool.getPixel(rect.x1 + dx, rect.y1 + dy);
+              }
+            }
+            for (let dx = 0; dx <= rect.x2 - rect.x1; ++dx) {
+              for (let dy = 0; dy <= rect.y2 - rect.y1; ++dy) {
+                tool.setPixel(rect.x1 + dx + dir.x, rect.y1 + dy + dir.y, pixels[`${dx},${dy}`]);
+              }
+            }
+            tool.range.startPos = {
+              x: rect.x1 + dir.x,
+              y: rect.y1 + dir.y,
+            };
+            tool.range.endPos = {
+              x: rect.x2 + dir.x,
+              y: rect.y2 + dir.y,
+            };
+            tool.render();
+          }
+        }
+      );
+    },
     doUndo(e) {
       this.$emit("undoredo", false);
     },
@@ -93,6 +164,7 @@ export default {
       this.pickedPencil = false;
       this.pickedFloodFill = false;
       this.pickedColorPicker =  false;
+      this.pickedRange =  false;
       this.$data[tool] = true;
     },
   }
@@ -106,7 +178,7 @@ export default {
     justify-content: space-evenly;
     align-items: center;
     border-radius: 0 35px 35px 0;
-    height: 350px;
+    height: 400px;
     width: 75px;
     background-color: #fae4dc;
     box-shadow: rgba(0,0,0,0.2) 0 0 8px;

@@ -503,11 +503,19 @@ export default {
         localStorage.setItem("acnl_"+this.pickPatterns[i].fullHash, lzString.compressToUTF16(this.pickPatterns[i].toString()));
       }
     },
-    toolChange(newTool){
+    toolChange(newTool, newToolEnd=null){
+      if (this.drawingTool.resetRange()) {
+        this.drawingTool.render();
+      }
       this.drawingTool.drawHandler = newTool;
+      this.drawingTool.drawEndHandler = newToolEnd;
     },
-    toolChangeAlt(newTool){
+    toolChangeAlt(newTool, newToolEnd=null){
+      if (this.drawingTool.resetRange()) {
+        this.drawingTool.render();
+      }
       this.drawingTool.drawHandlerAlt = newTool;
+      this.drawingTool.drawEndHandlerAlt = newToolEnd;
     },
     undoredo(isRedo) {
       if (isRedo) {
