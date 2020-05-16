@@ -142,7 +142,7 @@ const fonts = [
 
 const htmlWebpackOptions = {
   inject: true,
-  hash: false,
+  hash: env.ifProdVal(true, false),
   template: pathToPublicIndex,
   title: 'Animal Crossing Pattern Tool',
 };
