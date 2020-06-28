@@ -12,16 +12,19 @@
     </div>
     <h2>Main Menu</h2>
     <div class="nook-buttons">
-        <button @click="goToBrowse">
+        <button v-if='isOffline' @click="reload">
+            Reload
+        </button>
+        <button v-if='!isOffline' @click="goToBrowse">
             Browse
         </button>
-        <button @click="goToFAQ">
+        <button v-if='!isOffline' @click="goToFAQ">
             FAQ
         </button>
-        <button @click="goToChanges">
+        <button v-if='!isOffline' @click="goToChanges">
             Changelog
         </button>
-        <a href="https://discord.gg/9rGkZNk">
+        <a v-if='!isOffline' href="https://discord.gg/9rGkZNk">
             <button>
                 Discord
             </button>
@@ -37,6 +40,7 @@
 import nookSvg from '/assets/icons/nookphone/nook-head.svg';
 import gpsSvg from '/assets/icons/nookphone/nook-gps.svg';
 import barsSvg from '/assets/icons/nookphone/nook-service.svg';
+import {ifOfflineVal, isOffline} from '/utils/if-env';
 
 export default {
   name: "NookPhoneMenu",
@@ -48,15 +52,20 @@ export default {
     return {
         dateObj: new Date(),
         time: new Date().toLocaleTimeString('en-US', {hour: '2-digit', timeStyle: 'short'}),
+        offlineState: ifOfflineVal('Offline', 'Online'),
         nookSvg,
         gpsSvg,
         barsSvg,
+        isOffline,
     };
   },
   created() {
       const interval = setInterval(() => this.time = this.dateObj.toLocaleTimeString('en-US', {hour: '2-digit', timeStyle: 'short'}), 1000);
   },
   methods: {
+    reload: function() {
+      window.location.reload(true);
+    },
     goToBrowse: function() {
       this.$router.push({ path: `/browse` });
     },
