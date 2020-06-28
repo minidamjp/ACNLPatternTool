@@ -1,3 +1,3 @@
 [submodule "zxing-js-library"]
 	path = zxing-js-library
-	url = https://github.com/Thulinma/zxing-js-library.git
+	url = https://github.com/minidamjp/zxing-js-library-for-ACNLPatternTool.git
